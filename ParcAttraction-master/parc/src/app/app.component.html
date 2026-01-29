@@ -1,0 +1,8 @@
+<mat-toolbar>
+  <span><a routerLink="/accueil">Parc d'attraction</a></span>
+  <div *ngIf="authService.isLoggedIn">
+    <button mat-stroked-button (click)="logout()">Déconnexion</button>
+  </div>
+</mat-toolbar>
+
+<router-outlet></router-outlet>
