@@ -27,6 +27,14 @@ def addAttraction():
         return jsonify({"message": "Element ajouté.", "result": retour}), 200
     return jsonify({"message": "Erreur lors de l'ajout.", "result": retour}), 500
 
+@app.post('/critique')
+def addCritique():
+    json = request.get_json()
+    res = attraction.add_critique(json)
+    if res:
+        return jsonify({"message": "Critique ajoutée"}), 200
+    return jsonify({"message": "Erreur"}), 500
+
 @app.get('/attraction')
 def getAllAttraction():
     result = attraction.get_all_attraction()
@@ -36,6 +44,11 @@ def getAllAttraction():
 def getAttraction(index):
     result = attraction.get_attraction(index)
     return result, 200
+
+@app.get('/attraction/visible')
+def getVisibleAttractions():
+    result = attraction.get_visible_attractions()
+    return jsonify(result), 200
 
 @app.delete('/attraction/<int:index>')
 def deleteAttraction(index):

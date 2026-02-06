@@ -24,4 +24,12 @@ export class AttractionService {
     const data = this.dataService.postData(url, attraction);
     return data as Observable<MessageInterface>;
   }
+
+  public getAllVisibleAttraction() : Observable<AttractionInterface[]> {
+    return this.dataService.getData("https://api/attraction/visible") as Observable<AttractionInterface[]>;
+  }
+
+  public postCritique(critique: any): Observable<any> {
+    return this.dataService.postData("https://api/critique", critique);
+  }
 }

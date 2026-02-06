@@ -47,3 +47,10 @@ def delete_attraction(id):
     req.delete_from_db("DELETE FROM attraction WHERE attraction_id = ?", (id,))
 
     return True
+
+def get_visible_attractions():
+    return req.select_from_db("SELECT * FROM attraction WHERE visible = 1")
+
+def add_critique(data):
+    requete = "INSERT INTO critique (attraction_id, nom, prenom, note, commentaire, est_anonyme) VALUES (?, ?, ?, ?, ?, ?)"
+    return req.insert_in_db(requete, (data['attraction_id'], data['nom'], data['prenom'], data['note'], data['commentaire'], data['est_anonyme']))

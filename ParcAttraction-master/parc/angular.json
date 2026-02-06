@@ -5,6 +5,12 @@
   "projects": {
     "parc": {
       "projectType": "application",
+      "i18n": { 
+        "sourceLocale": "fr-FR",
+        "locales": {
+          "en": "src/locale/messages.en.xlf"
+        }
+      },
       "schematics": {
         "@schematics/angular:component": {
           "style": "scss"
