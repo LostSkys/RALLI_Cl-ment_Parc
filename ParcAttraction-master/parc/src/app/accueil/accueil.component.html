@@ -1,20 +1,58 @@
-<div class="main-container">
-  <h1 i18n="@@welcomeMsg">Nos Attractions</h1> <div class="attraction-grid">
-    <mat-card *ngFor="let attraction of (attractions | async)" class="attraction-card">
+<div class="container">
+  <div class="header">
+    <h1 i18n="@@nosAttractions">Nos Attractions</h1>
+    <div class="language-selector">
+      <button mat-button (click)="switchLanguage('fr')" [class.active]="currentLang === 'fr'">
+        🇫🇷 Français
+      </button>
+      <button mat-button (click)="switchLanguage('en')" [class.active]="currentLang === 'en'">
+        🇬🇧 English
+      </button>
+    </div>
+  </div>
+
+  <div class="grid" *ngIf="(attractions | async) as attractionsList">
+    <mat-card *ngFor="let attraction of attractionsList" class="attraction-card">
       <mat-card-header>
         <mat-card-title>{{ attraction.nom }}</mat-card-title>
-        <mat-card-subtitle i18n="@@diffLevel">Difficulté : {{ attraction.difficulte }}/5</mat-card-subtitle>
+        <div class="difficulty-badge" [ngClass]="'difficulty-' + attraction.difficulte">
+          <span i18n="@@difficulte">Difficulté</span>: {{ attraction.difficulte }}/5
+        </div>
       </mat-card-header>
       
       <mat-card-content>
-        <p>{{ attraction.description }}</p>
+        <p class="description">{{ attraction.description }}</p>
+        
+        <div class="critiques-section" *ngIf="attraction.critiques && attraction.critiques.length > 0">
+          <h3 i18n="@@avis">Avis des visiteurs</h3>
+          <div class="critique-item" *ngFor="let critique of attraction.critiques">
+            <div class="critique-header">
+              <span class="critique-author">
+                <ng-container *ngIf="critique.est_anonyme; else showName">
+                  <span i18n="@@anonyme">Anonyme</span>
+                </ng-container>
+                <ng-template #showName>
+                  {{ critique.prenom }} {{ critique.nom }}
+                </ng-template>
+              </span>
+              <span class="critique-note">⭐ {{ critique.note }}/5</span>
+            </div>
+            <p class="critique-commentaire">{{ critique.commentaire }}</p>
+          </div>
+        </div>
       </mat-card-content>
-
+      
       <mat-card-actions>
-        <button mat-raised-button color="primary" (click)="laisserCritique(attraction)" i18n="@@btnCritique">
-          Laisser un avis
+        <button mat-raised-button color="primary" (click)="ouvrirDialogueCritique(attraction)">
+          <mat-icon>rate_review</mat-icon>
+          <span i18n="@@laisserAvis">Laisser un avis</span>
         </button>
       </mat-card-actions>
     </mat-card>
+  </div>
+
+  <div class="loading" *ngIf="!(attractions | async)">
+    <mat-spinner></mat-spinner>
+    <p i18n="@@chargement">Chargement des attractions...</p>
   </div>
 </div>

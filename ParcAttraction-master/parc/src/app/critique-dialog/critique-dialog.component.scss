@@ -1,0 +1,88 @@
+::ng-deep .mat-mdc-dialog-container {
+  border-radius: 15px !important;
+}
+
+h2 {
+  color: #667eea;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.critique-form {
+  padding: 1rem 0;
+  min-width: 400px;
+
+  .form-row {
+    margin-bottom: 1.5rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  .note-label {
+    display: block;
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  .star-rating {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+
+    button {
+      transition: all 0.2s ease;
+
+      mat-icon {
+        font-size: 2rem;
+        width: 2rem;
+        height: 2rem;
+        color: #ccc;
+      }
+
+      &.selected mat-icon {
+        color: #ffc107;
+        transform: scale(1.1);
+      }
+
+      &:hover mat-icon {
+        color: #ffc107;
+        transform: scale(1.2);
+      }
+    }
+  }
+
+  mat-checkbox {
+    margin-top: 0.5rem;
+  }
+}
+
+mat-dialog-actions {
+  padding: 1rem 1.5rem;
+  gap: 1rem;
+
+  button {
+    min-width: 100px;
+    border-radius: 8px;
+    font-weight: 500;
+  }
+}
+
+mat-error {
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .critique-form {
+    min-width: 300px;
+  }
+}

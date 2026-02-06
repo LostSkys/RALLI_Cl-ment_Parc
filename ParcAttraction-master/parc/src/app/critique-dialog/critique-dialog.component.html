@@ -1,0 +1,76 @@
+<h2 mat-dialog-title i18n="@@laisserAvisPour">Laisser un avis pour {{ data.attraction.nom }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="critiqueForm" class="critique-form">
+    
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label i18n="@@nom">Nom</mat-label>
+        <input matInput formControlName="nom" placeholder="Votre nom">
+        <mat-error *ngIf="critiqueForm.get('nom')?.hasError('required')" i18n="@@nomRequis">
+          Le nom est requis
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label i18n="@@prenom">Prénom</mat-label>
+        <input matInput formControlName="prenom" placeholder="Votre prénom">
+        <mat-error *ngIf="critiqueForm.get('prenom')?.hasError('required')" i18n="@@prenomRequis">
+          Le prénom est requis
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-checkbox formControlName="est_anonyme" color="primary" i18n="@@resterAnonyme">
+        Rester anonyme
+      </mat-checkbox>
+    </div>
+
+    <div class="form-row">
+      <label class="note-label" i18n="@@votre Note">Votre note</label>
+      <div class="star-rating">
+        <button 
+          type="button"
+          mat-icon-button 
+          *ngFor="let star of [1,2,3,4,5]" 
+          (click)="setNote(star)"
+          [class.selected]="star <= (critiqueForm.get('note')?.value || 0)">
+          <mat-icon>{{ star <= (critiqueForm.get('note')?.value || 0) ? 'star' : 'star_border' }}</mat-icon>
+        </button>
+      </div>
+      <mat-error *ngIf="critiqueForm.get('note')?.hasError('required') && critiqueForm.get('note')?.touched" i18n="@@noteRequise">
+        La note est requise
+      </mat-error>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label i18n="@@votreAvis">Votre avis</mat-label>
+        <textarea 
+          matInput 
+          formControlName="commentaire" 
+          rows="4"
+          placeholder="Partagez votre expérience..."></textarea>
+        <mat-error *ngIf="critiqueForm.get('commentaire')?.hasError('required')" i18n="@@avisRequis">
+          Votre avis est requis
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" i18n="@@annuler">Annuler</button>
+  <button 
+    mat-raised-button 
+    color="primary" 
+    (click)="onSubmit()" 
+    [disabled]="!critiqueForm.valid"
+    i18n="@@envoyer">
+    Envoyer
+  </button>
+</mat-dialog-actions>

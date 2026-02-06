@@ -9,12 +9,10 @@ import { MessageInterface } from '../Interface/message.interface';
 })
 export class AttractionService {
 
-  constructor(private dataService: DataService) {
+  constructor(private dataService: DataService) {}
 
-  }
-
-  public getAllAttraction() : Observable<AttractionInterface[]> {
-    const url = "https://api/attraction"
+  public getAllAttraction(): Observable<AttractionInterface[]> {
+    const url = "https://api/attraction";
     const data = this.dataService.getData(url);
     return data as Observable<AttractionInterface[]>;
   }
@@ -25,11 +23,19 @@ export class AttractionService {
     return data as Observable<MessageInterface>;
   }
 
-  public getAllVisibleAttraction() : Observable<AttractionInterface[]> {
+  public getAllVisibleAttraction(): Observable<AttractionInterface[]> {
     return this.dataService.getData("https://api/attraction/visible") as Observable<AttractionInterface[]>;
+  }
+
+  public getAllVisibleAttractionWithCritiques(): Observable<AttractionInterface[]> {
+    return this.dataService.getData("https://api/attraction/visible/critiques") as Observable<AttractionInterface[]>;
   }
 
   public postCritique(critique: any): Observable<any> {
     return this.dataService.postData("https://api/critique", critique);
+  }
+
+  public getCritiquesByAttraction(attractionId: number): Observable<any[]> {
+    return this.dataService.getData(`https://api/critique/attraction/${attractionId}`) as Observable<any[]>;
   }
 }

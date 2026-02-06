@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="2.0" xmlns="urn:oasis:names:tc:xliff:document:2.0" srcLang="fr-FR" trgLang="en">
+  <file id="ngi18n" datatype="plaintext" original="ng2.template">
+    <unit id="nosAttractions">
+      <segment>
+        <source>Nos Attractions</source>
+        <target>Our Attractions</target>
+      </segment>
+    </unit>
+    <unit id="difficulte">
+      <segment>
+        <source>Difficulté</source>
+        <target>Difficulty</target>
+      </segment>
+    </unit>
+    <unit id="avis">
+      <segment>
+        <source>Avis des visiteurs</source>
+        <target>Visitor Reviews</target>
+      </segment>
+    </unit>
+    <unit id="anonyme">
+      <segment>
+        <source>Anonyme</source>
+        <target>Anonymous</target>
+      </segment>
+    </unit>
+    <unit id="laisserAvis">
+      <segment>
+        <source>Laisser un avis</source>
+        <target>Leave a review</target>
+      </segment>
+    </unit>
+    <unit id="chargement">
+      <segment>
+        <source>Chargement des attractions...</source>
+        <target>Loading attractions...</target>
+      </segment>
+    </unit>
+    <unit id="laisserAvisPour">
+      <segment>
+        <source>Laisser un avis pour</source>
+        <target>Leave a review for</target>
+      </segment>
+    </unit>
+    <unit id="nom">
+      <segment>
+        <source>Nom</source>
+        <target>Last name</target>
+      </segment>
+    </unit>
+    <unit id="nomRequis">
+      <segment>
+        <source>Le nom est requis</source>
+        <target>Last name is required</target>
+      </segment>
+    </unit>
+    <unit id="prenom">
+      <segment>
+        <source>Prénom</source>
+        <target>First name</target>
+      </segment>
+    </unit>
+    <unit id="prenomRequis">
+      <segment>
+        <source>Le prénom est requis</source>
+        <target>First name is required</target>
+      </segment>
+    </unit>
+    <unit id="resterAnonyme">
+      <segment>
+        <source>Rester anonyme</source>
+        <target>Stay anonymous</target>
+      </segment>
+    </unit>
+    <unit id="votreNote">
+      <segment>
+        <source>Votre note</source>
+        <target>Your rating</target>
+      </segment>
+    </unit>
+    <unit id="noteRequise">
+      <segment>
+        <source>La note est requise</source>
+        <target>Rating is required</target>
+      </segment>
+    </unit>
+    <unit id="votreAvis">
+      <segment>
+        <source>Votre avis</source>
+        <target>Your review</target>
+      </segment>
+    </unit>
+    <unit id="avisRequis">
+      <segment>
+        <source>Votre avis est requis</source>
+        <target>Your review is required</target>
+      </segment>
+    </unit>
+    <unit id="annuler">
+      <segment>
+        <source>Annuler</source>
+        <target>Cancel</target>
+      </segment>
+    </unit>
+    <unit id="envoyer">
+      <segment>
+        <source>Envoyer</source>
+        <target>Submit</target>
+      </segment>
+    </unit>
+    <unit id="avisMerci">
+      <segment>
+        <source>Merci pour votre avis !</source>
+        <target>Thank you for your review!</target>
+      </segment>
+    </unit>
+    <unit id="avisErreur">
+      <segment>
+        <source>Erreur lors de l'envoi de votre avis.</source>
+        <target>Error submitting your review.</target>
+      </segment>
+    </unit>
+  </file>
+</xliff>

@@ -6,16 +6,23 @@ import controller.auth.auth as user
 import controller.attraction as attraction
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "https://parcattraction"}}, supports_credentials=True)
+
+@app.after_request
+def add_header(response):
+    response.headers['Access-Control-Allow-Origin'] = 'https://parcattraction'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    return response
 
 @app.route('/')
 def hello_world():
     return 'Hello, Docker!'
 
-# Attraction
+# Attraction Routes
 @app.post('/attraction')
 def addAttraction():
-    print("okok", flush=True)
+    print("Ajout d'une attraction", flush=True)
     # Fonction vérif token
     checkToken = user.check_token(request)
     if (checkToken != True):
@@ -26,14 +33,6 @@ def addAttraction():
     if (retour):
         return jsonify({"message": "Element ajouté.", "result": retour}), 200
     return jsonify({"message": "Erreur lors de l'ajout.", "result": retour}), 500
-
-@app.post('/critique')
-def addCritique():
-    json = request.get_json()
-    res = attraction.add_critique(json)
-    if res:
-        return jsonify({"message": "Critique ajoutée"}), 200
-    return jsonify({"message": "Erreur"}), 500
 
 @app.get('/attraction')
 def getAllAttraction():
@@ -47,23 +46,44 @@ def getAttraction(index):
 
 @app.get('/attraction/visible')
 def getVisibleAttractions():
+    """Récupère uniquement les attractions visibles (sans critiques)"""
     result = attraction.get_visible_attractions()
+    return jsonify(result), 200
+
+@app.get('/attraction/visible/critiques')
+def getVisibleAttractionsWithCritiques():
+    """Récupère les attractions visibles avec leurs critiques"""
+    result = attraction.get_visible_attractions_with_critiques()
     return jsonify(result), 200
 
 @app.delete('/attraction/<int:index>')
 def deleteAttraction(index):
-
     # Fonction vérif token
     checkToken = user.check_token(request)
     if (checkToken != True):
         return checkToken
 
-    json = request.get_json()
-    
     if (attraction.delete_attraction(index)):
         return "Element supprimé.", 200
     return jsonify({"message": "Erreur lors de la suppression."}), 500
 
+# Critique Routes
+@app.post('/critique')
+def addCritique():
+    """Ajoute une critique pour une attraction"""
+    json = request.get_json()
+    res = attraction.add_critique(json)
+    if res:
+        return jsonify({"message": "Critique ajoutée", "critique_id": res}), 200
+    return jsonify({"message": "Erreur lors de l'ajout de la critique"}), 400
+
+@app.get('/critique/attraction/<int:attraction_id>')
+def getCritiquesByAttraction(attraction_id):
+    """Récupère toutes les critiques d'une attraction"""
+    result = attraction.get_critiques_by_attraction(attraction_id)
+    return jsonify(result), 200
+
+# Auth Routes
 @app.post('/login')
 def login():
     json = request.get_json()
@@ -78,5 +98,11 @@ def login():
     records = cur.fetchall()
     conn.close()
 
+    if len(records) == 0:
+        return jsonify({"message": "Identifiants incorrects"}), 401
+
     result = jsonify({"token": user.encode_auth_token(list(records[0])[0]), "name": json['name']})
     return result, 200
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
