@@ -1,27 +1,29 @@
-version: '3.8'
-
 services:
 
   # ============================================
-  # SERVICE WEB - FRONTEND ANGULAR
+  # SERVICE DATABASE - MARIADB (démarre en premier)
   # ============================================
-  web:
-    image: app-angular
-    container_name: parc-frontend
-    build:
-      context: ./parc
-      args:
-        MY_UID: ${MY_UID:-0}
-        MY_GID: ${MY_GID:-0}
-    command: ./init-angular.sh
+  database:
+    image: mariadb:latest
+    container_name: parc-database
     volumes:
-      - ./parc:/home/node/app
-      - /home/node/app/node_modules  # Volume anonyme pour node_modules
+      - database_data:/var/lib/mysql:rw
+      - ./python/sql_file/create.sql:/docker-entrypoint-initdb.d/create.sql:ro
     ports:
-      - "4200:4200"
+      - "3306:3306"
     environment:
-      - NODE_ENV=development
-    restart: always
+      - MYSQL_ROOT_PASSWORD=mysqlroot
+      - MYSQL_DATABASE=parc
+      - MYSQL_USER=mysqlusr
+      - MYSQL_PASSWORD=mysqlpwd
+      - TZ=Europe/Paris
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "mysqlusr", "-pmysqlpwd"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
     networks:
       - parc-network
 
@@ -46,43 +48,43 @@ services:
       - DB_NAME=parc
       - DB_USER=mysqlusr
       - DB_PASSWORD=mysqlpwd
-    restart: always
+      - PYTHONUNBUFFERED=1
     depends_on:
       database:
         condition: service_healthy
+    restart: unless-stopped
     networks:
       - parc-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
 
   # ============================================
-  # SERVICE DATABASE - MARIADB
+  # SERVICE WEB - FRONTEND ANGULAR
   # ============================================
-  database:
-    image: mariadb:latest
-    container_name: parc-database
+  web:
+    image: app-angular
+    container_name: parc-frontend
+    build:
+      context: ./parc
+      args:
+        MY_UID: ${MY_UID:-1000}
+        MY_GID: ${MY_GID:-1000}
+    command: sh -c "npm install 2>/dev/null || true && ng serve --host 0.0.0.0 --poll 2000 --disable-host-check"
     volumes:
-      - database_data:/var/lib/mysql:rw
-      - ./python/sql_file/create.sql:/docker-entrypoint-initdb.d/create.sql:ro
+      - ./parc:/home/node/app
+      - /home/node/app/node_modules
     ports:
-      - "3306:3306"
+      - "4200:4200"
     environment:
-      - MYSQL_ROOT_PASSWORD=mysqlroot
-      - MYSQL_DATABASE=parc
-      - MYSQL_USER=mysqlusr
-      - MYSQL_PASSWORD=mysqlpwd
-      - TZ=Europe/Paris
-    healthcheck:
-      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "mysqlusr", "-pmysqlpwd"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    restart: always
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - api
+    restart: unless-stopped
     networks:
       - parc-network
 
@@ -99,16 +101,13 @@ services:
       - "443:443"
       - "80:80"
     depends_on:
-      - web
-      - api
-    restart: always
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
+    restart: unless-stopped
     networks:
       - parc-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 # ============================================
 # VOLUMES PERSISTANTS
