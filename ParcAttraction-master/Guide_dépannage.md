@@ -1,513 +1,287 @@
-# 🚨 GUIDE DE DÉPANNAGE - PARC D'ATTRACTION
+# GUIDE D'INSTALLATION FINAL - PARC D'ATTRACTION
 
-## 🎯 Problèmes Courants et Solutions
+## SOLUTION COMPLÈTE EN 3 ÉTAPES
+
+### Étape 1: Placer les Fichiers Corrigés
+
+```powershell
+# À la racine de votre projet
+Copy-Item docker-compose-WORKING.yml docker-compose.yml -Force
+Copy-Item start_app.py . -Force
+
+# Frontend Angular (parc/)
+Copy-Item Dockerfile.parc parc/Dockerfile -Force
+
+# Nginx
+Copy-Item default.conf.WORKING nginx/default.conf -Force
+```
+
+### Étape 2: Lancer le Script Magique
+
+```powershell
+python start_app.py
+```
+
+**C'est tout !** Le script va :
+1.  Vérifier que Docker est installé et lancé
+2.  Arrêter les anciens containers
+3.  Build tous les containers
+4.  Démarrer tous les services
+5.  Attendre que la base soit prête
+6.  Attendre que l'API soit prête
+7.  Initialiser la base de données
+8.  Attendre que le frontend soit prêt
+9.  Afficher le statut
+10.  Proposer d'ouvrir le navigateur
+
+### Étape 3: Profiter !
+
+Ouvrir le navigateur sur : **https://parcattraction/accueil**
 
 ---
 
-## Problème 1: Bad Gateway (502)
+## SI LE SCRIPT PYTHON NE FONCTIONNE PAS
 
-### Symptômes
-- Le site affiche "502 Bad Gateway"
-- Impossible d'accéder à https://parcattraction
+### Méthode Manuelle (PowerShell)
 
-### Diagnostic
-
-```bash
-# 1. Vérifier l'état des containers
-docker compose ps
-
-# Tous les services doivent être "Up" et "healthy"
-```
-
-### Solutions
-
-#### Solution A: Redémarrer dans le bon ordre
-
-```bash
+```powershell
 # 1. Arrêter tout
 docker compose down
 
-# 2. Démarrer la base d'abord
-docker compose up -d database
+# 2. Supprimer les anciennes images (optionnel mais recommandé)
+docker rmi app-python app-angular 2>$null
 
-# 3. Attendre que la BDD soit healthy (30-60 secondes)
+# 3. Build
+docker compose build --no-cache
+
+# 4. Démarrer
+docker compose up -d
+
+# 5. Attendre 30 secondes
+Start-Sleep -Seconds 30
+
+# 6. Vérifier la base
 docker compose ps database
 # Doit afficher "(healthy)"
 
-# 4. Démarrer l'API
-docker compose up -d api
+# 7. Attendre encore 30 secondes pour l'API
+Start-Sleep -Seconds 30
 
-# 5. Attendre que l'API soit healthy (20-30 secondes)
-docker compose ps api
-# Doit afficher "(healthy)"
+# 8. Initialiser la base
+docker compose exec api python3 init.py
 
-# 6. Démarrer le frontend
-docker compose up -d web
+# 9. Attendre 60 secondes pour le frontend
+Start-Sleep -Seconds 60
 
-# 7. Attendre 10 secondes puis démarrer nginx
-sleep 10
-docker compose up -d nginx
-
-# 8. Vérifier
+# 10. Vérifier tout
 docker compose ps
+
+# 11. Ouvrir le navigateur
+start https://parcattraction/accueil
 ```
 
-#### Solution B: Vérifier les logs
+## VÉRIFICATIONS
 
-```bash
-# Logs de nginx (si erreur de proxy)
-docker compose logs nginx | tail -50
+### Vérifier que tout fonctionne
 
-# Logs de l'API (si erreur backend)
-docker compose logs api | tail -50
+```powershell
+# État des containers
+docker compose ps
 
-# Logs du frontend (si erreur Angular)
-docker compose logs web | tail -50
+# Doit afficher:
+# parc-database   Up (healthy)
+# parc-backend    Up
+# parc-frontend   Up
+# parc-proxy      Up
 ```
 
-#### Solution C: Rebuild complet
+### Tests Individuels
 
-```bash
-# Arrêter et supprimer tout (SAUF les volumes de données)
-docker compose down
+```powershell
+# Test Database
+docker compose exec database mysql -u mysqlusr -pmysqlpwd -e "SELECT COUNT(*) FROM parc.attraction;"
 
-# Rebuild les images
+# Test API
+curl http://localhost:5000/
+
+# Test Frontend
+curl http://localhost:4200/
+
+# Test Nginx vers API
+curl https://api/ -k
+
+# Test Nginx vers Frontend
+curl https://parcattraction/accueil -k
+```
+
+---
+
+## EXPLICATIONS DES CORRECTIONS
+
+### Problème 1: Frontend qui redémarre en boucle
+**Cause:** Commande `chmod` dans docker-compose.yml sur Windows
+**Solution:** Commande directe `["ng", "serve", ...]` sans script intermédiaire
+
+### Problème 2: Dockerfile Angular manquant
+**Cause:** Vous n'aviez que le Dockerfile Python
+**Solution:** Création d'un Dockerfile optimisé pour Angular
+
+### Problème 3: Timeouts Nginx trop courts
+**Cause:** Angular prend du temps à compiler au premier démarrage
+**Solution:** Timeouts augmentés à 300 secondes
+
+### Problème 4: Build lent
+**Cause:** npm install à chaque démarrage
+**Solution:** npm install dans le Dockerfile + volume pour node_modules
+
+---
+
+## COMMANDES DE DÉPANNAGE
+
+### Voir les Logs
+
+```powershell
+# Tous les services
+docker compose logs -f
+
+# Service spécifique
+docker compose logs -f web
+docker compose logs -f api
+docker compose logs -f database
+docker compose logs -f nginx
+
+# Dernières 50 lignes
+docker compose logs web --tail 50
+```
+
+### Redémarrer un Service
+
+```powershell
+docker compose restart web
+docker compose restart api
+docker compose restart nginx
+```
+
+### Entrer dans un Container
+
+```powershell
+# Frontend
+docker compose exec web sh
+
+# API
+docker compose exec api sh
+
+# Database
+docker compose exec database bash
+
+# Nginx
+docker compose exec nginx sh
+```
+
+### Reset Complet
+
+```powershell
+# Tout arrêter et supprimer
+docker compose down -v
+
+# Rebuild from scratch
 docker compose build --no-cache
 
 # Redémarrer
 docker compose up -d
 
-# Suivre les logs
-docker compose logs -f
-```
+# Attendre 2 minutes
+Start-Sleep -Seconds 120
 
----
-
-## Problème 2: Base de Données Vide
-
-### Symptômes
-- Aucune attraction n'apparaît
-- Page blanche ou erreurs 404
-- API retourne `[]`
-
-### Diagnostic
-
-```bash
-# Se connecter à la base
-docker compose exec database mysql -u mysqlusr -pmysqlpwd parc
-
-# Dans MySQL, vérifier:
-SHOW TABLES;
-SELECT COUNT(*) FROM attraction;
-SELECT COUNT(*) FROM critique;
-EXIT;
-```
-
-### Solutions
-
-#### Solution A: Réinitialiser avec init.py
-
-```bash
-# 1. Se connecter au container API
-docker compose exec api sh
-
-# 2. Lancer le script d'initialisation
-python3 init.py
-
-# 3. Sortir
-exit
-
-# 4. Redémarrer l'API
-docker compose restart api
-```
-
-**⚠️ ATTENTION: Cette solution SUPPRIME toutes les données existantes!**
-
-#### Solution B: Restaurer depuis un backup
-
-Si vous avez fait un backup avant:
-
-```bash
-# 1. Lister les backups disponibles
-docker compose exec api ls -la backup_*.sql
-
-# 2. Restaurer (remplacer par le bon nom de fichier)
-docker compose exec api python3 backup.py restore backup_parc_20260206_153000.sql
-
-# 3. Redémarrer
-docker compose restart api
-```
-
-#### Solution C: Insertion manuelle SQL
-
-```bash
-# Se connecter à la base
-docker compose exec database mysql -u mysqlusr -pmysqlpwd parc
-
-# Copier-coller ce SQL:
-```
-
-```sql
--- Insérer les attractions
-INSERT INTO attraction (nom, description, difficulte, visible) VALUES 
-('Silver Star', 'Une montagne russe mythique avec des loopings vertigineux.', 4, 1),
-('Le Condor', 'Une chute libre spectaculaire de 100 mètres.', 5, 1),
-('Le Carrousel', 'Manège traditionnel pour les plus petits.', 1, 1),
-('Space Mountain', 'Voyage dans les étoiles à toute vitesse.', 4, 1),
-('Le Petit Train', 'Balade tranquille à travers le parc.', 1, 1);
-
--- Insérer quelques critiques
-INSERT INTO critique (attraction_id, nom, prenom, note, commentaire, est_anonyme) VALUES 
-(1, 'Dupont', 'Marie', 5, 'Incroyable! Les sensations sont au rendez-vous.', 0),
-(1, 'Anonyme', '', 5, 'Meilleure attraction du parc!', 1),
-(2, 'Bernard', 'Sophie', 5, 'J\'ai adoré la chute libre!', 0);
-
--- Vérifier
-SELECT COUNT(*) FROM attraction;
-SELECT COUNT(*) FROM critique;
-EXIT;
-```
-
----
-
-## 🛡️ PROCÉDURE DE SECOURS COMPLÈTE
-
-### Avant toute manipulation: FAIRE UN BACKUP!
-
-```bash
-# Se connecter au container API
-docker compose exec api sh
-
-# Créer un backup
-python3 backup.py
-
-# Le fichier sera créé: backup_parc_YYYYMMDD_HHMMSS.sql
-# Noter le nom du fichier!
-
-# Sortir
-exit
-```
-
-### Reset Total avec Sauvegarde
-
-```bash
-# 1. BACKUP (IMPORTANT!)
-docker compose exec api python3 backup.py
-
-# 2. Arrêter tout
-docker compose down
-
-# 3. Supprimer le volume de données (⚠️ PERTE DE DONNÉES!)
-docker volume rm parc_database_data
-
-# 4. Recréer tout
-docker compose up -d
-
-# 5. Attendre 60 secondes que tout démarre
-sleep 60
-
-# 6. Vérifier
-docker compose ps
-# Tous doivent être "Up" ou "(healthy)"
-
-# 7. Initialiser la base
+# Initialiser
 docker compose exec api python3 init.py
-
-# 8. Vérifier que ça fonctionne
-curl https://api/attraction/visible
-```
-
-### Restaurer un Backup
-
-```bash
-# 1. Copier le fichier backup dans le container (si nécessaire)
-docker cp backup_parc_20260206_153000.sql parc-backend:/var/www/html/back/
-
-# 2. Restaurer
-docker compose exec api python3 backup.py restore backup_parc_20260206_153000.sql
-
-# 3. Redémarrer l'API
-docker compose restart api
-
-# 4. Vérifier
-docker compose exec api sh -c "python3 -c \"
-import mariadb
-conn = mariadb.connect(user='mysqlusr', password='mysqlpwd', host='database', port=3306, database='parc')
-cur = conn.cursor()
-cur.execute('SELECT COUNT(*) FROM attraction')
-print('Attractions:', cur.fetchone()[0])
-cur.execute('SELECT COUNT(*) FROM critique')
-print('Critiques:', cur.fetchone()[0])
-\""
 ```
 
 ---
 
-## 🔍 Diagnostic Rapide
+## CHECKLIST POST-INSTALLATION
 
-### Script de diagnostic automatique
+- [ ] `docker compose ps` affiche tous les services "Up"
+- [ ] `curl http://localhost:5000/` retourne "Hello, Docker!"
+- [ ] `curl http://localhost:4200/` retourne du HTML
+- [ ] `docker compose exec database mysql -u mysqlusr -pmysqlpwd -e "SELECT COUNT(*) FROM parc.attraction;"` retourne 7
+- [ ] https://parcattraction/accueil charge dans le navigateur
+- [ ] Les attractions s'affichent
+- [ ] Le bouton "Laisser un avis" ouvre le dialogue
+- [ ] Le formulaire de critique fonctionne
 
-Créez un fichier `diagnostic.sh`:
+---
 
-```bash
-#!/bin/bash
+## STRUCTURE FINALE DES FICHIERS
 
-echo "🔍 DIAGNOSTIC DU SYSTÈME"
-echo "========================"
-echo ""
-
-echo "📦 État des containers:"
-docker compose ps
-echo ""
-
-echo "🗄️ Volume de données:"
-docker volume ls | grep parc
-echo ""
-
-echo "🌐 Réseau:"
-docker network ls | grep parc
-echo ""
-
-echo "💾 Base de données:"
-docker compose exec database mysql -u mysqlusr -pmysqlpwd -e "
-USE parc;
-SELECT 'Attractions' as Table_Name, COUNT(*) as Count FROM attraction
-UNION ALL
-SELECT 'Critiques', COUNT(*) FROM critique
-UNION ALL
-SELECT 'Users', COUNT(*) FROM users;
-"
-echo ""
-
-echo "🔗 Connectivité API:"
-curl -s -o /dev/null -w "Status: %{http_code}\n" http://localhost:5000/ || echo "❌ API non accessible"
-echo ""
-
-echo "🔗 Connectivité Frontend:"
-curl -s -o /dev/null -w "Status: %{http_code}\n" http://localhost:4200/ || echo "❌ Frontend non accessible"
-echo ""
-
-echo "📋 Logs récents (API):"
-docker compose logs api | tail -10
-echo ""
-
-echo "✅ Diagnostic terminé"
 ```
-
-Puis:
-```bash
-chmod +x diagnostic.sh
-./diagnostic.sh
+parc-attraction/
+├── start_app.py                     NOUVEAU - Script magique
+├── docker-compose.yml               REMPLACÉ
+│
+├── parc/
+│   ├── Dockerfile                   NOUVEAU - Manquait !
+│   ├── package.json                (existant)
+│   ├── angular.json                (existant)
+│   └── src/...
+│
+├── python/
+│   ├── Dockerfile                  (existant, OK)
+│   ├── docker-entrypoint.sh        (existant, OK)
+│   ├── requirements.txt            (existant, OK)
+│   ├── init.py                     (à créer si manquant)
+│   └── ...
+│
+└── nginx/
+    ├── default.conf                 REMPLACÉ
+    └── ssl/
+        ├── selfsigned.crt          (existant)
+        └── selfsigned.key          (existant)
 ```
 
 ---
 
-## 🆘 Checklist de Dépannage
+## LANCEMENT RAPIDE
 
-Quand quelque chose ne fonctionne pas, suivez cette checklist:
+**Version ultra courte:**
 
-- [ ] **Étape 1**: `docker compose ps` - Tous les services sont "Up"?
-- [ ] **Étape 2**: `docker compose ps database` - Database est "(healthy)"?
-- [ ] **Étape 3**: `docker compose ps api` - API est "(healthy)"?
-- [ ] **Étape 4**: `docker compose logs api | tail -30` - Pas d'erreurs Python?
-- [ ] **Étape 5**: `docker compose logs web | tail -30` - Pas d'erreurs Angular?
-- [ ] **Étape 6**: `curl http://localhost:5000/` - API répond?
-- [ ] **Étape 7**: `curl http://localhost:4200/` - Frontend répond?
-- [ ] **Étape 8**: Vérifier la base de données (voir ci-dessus)
-- [ ] **Étape 9**: Si tout est OK mais 502: redémarrer nginx `docker compose restart nginx`
+```powershell
+# 1. Copier les fichiers
+Copy-Item docker-compose-WORKING.yml docker-compose.yml -Force
+Copy-Item Dockerfile.parc parc/Dockerfile -Force
+Copy-Item default.conf.WORKING nginx/default.conf -Force
+Copy-Item start_app.py . -Force
 
----
+# 2. Lancer
+python start_app.py
 
-## 🚀 Redémarrage Propre (Procédure Recommandée)
+# 3. Attendre que le script finisse
 
-Cette procédure garantit un démarrage sans problème:
-
-```bash
-# 1. Créer un backup (par sécurité)
-docker compose exec api python3 backup.py 2>/dev/null || echo "Pas de backup possible"
-
-# 2. Arrêter proprement
-docker compose down
-
-# 3. Vérifier que tout est arrêté
-docker compose ps
-# Doit être vide
-
-# 4. Démarrer la base seule
-docker compose up -d database
-
-# 5. Attendre 30 secondes
-echo "⏳ Attente démarrage base de données..."
-sleep 30
-
-# 6. Vérifier que la base est healthy
-docker compose ps database
-
-# 7. Si healthy, démarrer l'API
-docker compose up -d api
-
-# 8. Attendre 20 secondes
-echo "⏳ Attente démarrage API..."
-sleep 20
-
-# 9. Vérifier l'API
-docker compose ps api
-docker compose logs api | tail -10
-
-# 10. Démarrer le reste
-docker compose up -d
-
-# 11. Vérification finale
-echo "⏳ Attente finale..."
-sleep 10
-docker compose ps
-
-# 12. Test
-curl http://localhost:5000/
-echo ""
-echo "✅ Si vous voyez 'Hello, Docker!' ci-dessus, tout fonctionne!"
+# 4. Ouvrir
+start https://parcattraction/accueil
 ```
 
 ---
 
-## 📝 Logs Utiles
+## RÉSULTAT ATTENDU
 
-### Voir les logs en temps réel
+Après le lancement du script, vous devriez voir :
 
-```bash
-# Tous les services
-docker compose logs -f
+```
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║                DÉMARRAGE RÉUSSI !                             ║
+║                                                               ║
+║     Temps écoulé: 2m 34s                                      ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
 
-# Un service spécifique
-docker compose logs -f api
-docker compose logs -f web
-docker compose logs -f database
-docker compose logs -f nginx
+ URLS D'ACCÈS
 
-# Filtrer les erreurs
-docker compose logs api | grep -i error
-docker compose logs api | grep -i exception
+   Application:  https://parcattraction/accueil
+   API:          https://api/
+   API directe:  http://localhost:5000/
+   Frontend:     http://localhost:4200/
+   Database:     localhost:3306
 ```
 
-### Sauvegarder les logs
-
-```bash
-# Logs complets dans un fichier
-docker compose logs > logs_$(date +%Y%m%d_%H%M%S).txt
-
-# Logs d'un service
-docker compose logs api > logs_api_$(date +%Y%m%d_%H%M%S).txt
-```
-
----
-
-## 🔐 Accès Direct aux Services
-
-### Se connecter aux containers
-
-```bash
-# Container API (Python)
-docker compose exec api sh
-
-# Container Frontend (Node.js)
-docker compose exec web sh
-
-# Container Database (MariaDB)
-docker compose exec database bash
-
-# Container Nginx
-docker compose exec nginx sh
-```
-
-### Commandes utiles dans les containers
-
-**Dans le container API:**
-```bash
-# Vérifier les fichiers Python
-ls -la *.py
-
-# Tester la connexion BDD
-python3 -c "import mariadb; conn = mariadb.connect(user='mysqlusr', password='mysqlpwd', host='database', port=3306, database='parc'); print('✅ Connexion OK')"
-
-# Lancer init.py
-python3 init.py
-
-# Créer un backup
-python3 backup.py
-```
-
-**Dans le container Frontend:**
-```bash
-# Vérifier Angular CLI
-ng version
-
-# Rebuild
-npm install
-```
-
-**Dans le container Database:**
-```bash
-# Se connecter à MySQL
-mysql -u mysqlusr -p
-# Password: mysqlpwd
-
-# Vérifier les tables
-mysql -u mysqlusr -pmysqlpwd -e "USE parc; SHOW TABLES;"
-```
-
----
-
-## 🎓 Comprendre les Erreurs Courantes
-
-### "Connection refused" ou "Network error"
-**Cause**: Un service n'est pas démarré ou pas encore prêt  
-**Solution**: Attendre que le healthcheck passe à "healthy"
-
-### "502 Bad Gateway"
-**Cause**: Nginx ne peut pas joindre le backend/frontend  
-**Solution**: Vérifier que web et api sont "Up", redémarrer nginx
-
-### "Cannot connect to database"
-**Cause**: La base n'est pas prête ou mot de passe incorrect  
-**Solution**: Attendre que database soit "(healthy)", vérifier .env
-
-### "Table doesn't exist"
-**Cause**: Base de données non initialisée  
-**Solution**: Lancer `python3 init.py` dans le container api
-
-### "Permission denied" 
-**Cause**: Problème de droits sur les fichiers  
-**Solution**: `chmod +x init-angular.sh docker-entrypoint.sh`
-
----
-
-## 📞 Dernière Option: Reset Total
-
-Si rien ne fonctionne, reset complet:
-
-```bash
-# 1. BACKUP (si possible)
-docker compose exec api python3 backup.py
-
-# 2. Tout arrêter et supprimer
-docker compose down -v
-docker system prune -a --volumes
-
-# 3. Reconstruire depuis zéro
-docker compose build --no-cache
-docker compose up -d
-
-# 4. Attendre 2 minutes
-sleep 120
-
-# 5. Initialiser
-docker compose exec api python3 init.py
-
-# 6. Vérifier
-docker compose ps
-curl http://localhost:5000/
-```
-
----
-
-**💡 Conseil**: Créez des backups réguliers avec `docker compose exec api python3 backup.py`

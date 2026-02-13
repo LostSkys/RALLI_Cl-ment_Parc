@@ -1,26 +1,22 @@
 FROM node:20-alpine
 
-# On n'a plus besoin de créer l'utilisateur, il existe déjà
-# Définir le répertoire de travail
+# Créer le répertoire de travail
 WORKDIR /home/node/app
 
-# Copier les fichiers en s'assurant que l'utilisateur 'node' est propriétaire
-COPY --chown=node:node package*.json ./
+# Copier les fichiers package
+COPY package*.json ./
 
 # Installer les dépendances
-RUN npm install --legacy-peer-deps && npm cache clean --force
+RUN npm install --legacy-peer-deps
 
-# Copier le reste
-COPY --chown=node:node . .
+# Copier le reste de l'application
+COPY . .
 
 # Installer Angular CLI globalement
 RUN npm install -g @angular/cli@17
 
-# Permissions
-RUN chmod +x init-angular.sh || true
-
-# Utiliser l'utilisateur node existant (UID 1000)
-USER node
-
+# Exposer le port
 EXPOSE 4200
-CMD ["ng", "serve", "--host", "0.0.0.0", "--poll", "2000"]
+
+# Commande par défaut (sera override par docker-compose)
+CMD ["ng", "serve", "--host", "0.0.0.0", "--poll", "2000", "--disable-host-check"]

@@ -1,35 +1,26 @@
 services:
 
-  # ============================================
-  # SERVICE DATABASE - MARIADB (démarre en premier)
-  # ============================================
   database:
     image: mariadb:latest
     container_name: parc-database
     volumes:
-      - database_data:/var/lib/mysql:rw
+      - database_data:/var/lib/mysql
       - ./python/sql_file/create.sql:/docker-entrypoint-initdb.d/create.sql:ro
     ports:
       - "3306:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=mysqlroot
-      - MYSQL_DATABASE=parc
-      - MYSQL_USER=mysqlusr
-      - MYSQL_PASSWORD=mysqlpwd
-      - TZ=Europe/Paris
+      MYSQL_ROOT_PASSWORD: mysqlroot
+      MYSQL_DATABASE: parc
+      MYSQL_USER: mysqlusr
+      MYSQL_PASSWORD: mysqlpwd
     healthcheck:
       test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "mysqlusr", "-pmysqlpwd"]
-      interval: 3s
+      interval: 5s
       timeout: 5s
       retries: 20
-      start_period: 30s
-    restart: unless-stopped
     networks:
       - parc-network
 
-  # ============================================
-  # SERVICE API - BACKEND PYTHON/FLASK
-  # ============================================
   api:
     image: app-python
     container_name: parc-backend
@@ -40,57 +31,34 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - FLASK_APP=app:app
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
-      - DB_HOST=database
-      - DB_PORT=3306
-      - DB_NAME=parc
-      - DB_USER=mysqlusr
-      - DB_PASSWORD=mysqlpwd
-      - PYTHONUNBUFFERED=1
+      FLASK_APP: app:app
+      FLASK_ENV: development
+      FLASK_DEBUG: "1"
+      PYTHONUNBUFFERED: "1"
     depends_on:
       database:
         condition: service_healthy
-    restart: unless-stopped
     networks:
       - parc-network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
 
-  # ============================================
-  # SERVICE WEB - FRONTEND ANGULAR
-  # ============================================
   web:
     image: app-angular
     container_name: parc-frontend
     build:
       context: ./parc
-      args:
-        MY_UID: ${MY_UID:-1000}
-        MY_GID: ${MY_GID:-1000}
-    command: sh -c "npm install 2>/dev/null || true && ng serve --host 0.0.0.0 --poll 2000 --disable-host-check"
     volumes:
       - ./parc:/home/node/app
       - /home/node/app/node_modules
     ports:
       - "4200:4200"
     environment:
-      - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true
+      NODE_ENV: development
+    command: ["ng", "serve", "--host", "0.0.0.0", "--poll", "2000", "--disable-host-check"]
     depends_on:
       - api
-    restart: unless-stopped
     networks:
       - parc-network
 
-  # ============================================
-  # SERVICE NGINX - REVERSE PROXY
-  # ============================================
   nginx:
     image: nginx:alpine
     container_name: parc-proxy
@@ -101,26 +69,14 @@ services:
       - "443:443"
       - "80:80"
     depends_on:
-      api:
-        condition: service_healthy
-      web:
-        condition: service_started
-    restart: unless-stopped
+      - web
+      - api
     networks:
       - parc-network
 
-# ============================================
-# VOLUMES PERSISTANTS
-# ============================================
 volumes:
   database_data:
-    name: parc_database_data
-    driver: local
 
-# ============================================
-# RÉSEAUX
-# ============================================
 networks:
   parc-network:
-    name: parc-network
     driver: bridge

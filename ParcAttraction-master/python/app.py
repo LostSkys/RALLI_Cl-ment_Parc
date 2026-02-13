@@ -1,19 +1,13 @@
 from flask import Flask, jsonify, request
-from flask_cors import CORS
 
 import request.request as req
 import controller.auth.auth as user
 import controller.attraction as attraction
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://parcattraction"}}, supports_credentials=True)
 
-@app.after_request
-def add_header(response):
-    response.headers['Access-Control-Allow-Origin'] = 'https://parcattraction'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
-    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
-    return response
+# ⚠️ PAS DE Flask-CORS du tout !
+# Nginx gère TOUT le CORS
 
 @app.route('/')
 def hello_world():
